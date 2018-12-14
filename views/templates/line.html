@@ -1,0 +1,214 @@
+{% extends 'index.html' %}
+{% block keycontent %}
+    <div class="container-fluid p-0">
+        <nav class="navbar navbar-expand-sm bg-warning navbar-dark">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="/">Index</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href='#'>line active</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/bar">bar</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link disabled" href="#">Disabled</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="container mx-auto">
+            <div id="test"></div>
+            <div id="test-overview"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+
+        var focusChart = dc.seriesChart("#test");
+        var overviewChart = dc.seriesChart("#test-overview");
+        var ndx, runDimension, runGroup, overviewRunDimension, overviewRunGroup;
+
+
+        let experiments = [
+            {'Expt': 1, 'Run': 2, 'Speed': 200},
+            {'Expt': 1, 'Run': 3, 'Speed': 300},
+            {'Expt': 1, 'Run': 4, 'Speed': 100},
+            {'Expt': 1, 'Run': 5, 'Speed': 200},
+            {'Expt': 1, 'Run': 6, 'Speed': 500},
+            {'Expt': 1, 'Run': 7, 'Speed': 400},
+            {'Expt': 2, 'Run': 1, 'Speed': 100},
+            {'Expt': 2, 'Run': 2, 'Speed': 200},
+            {'Expt': 2, 'Run': 3, 'Speed': 120},
+            {'Expt': 2, 'Run': 4, 'Speed': 150},
+            {'Expt': 2, 'Run': 5, 'Speed': 220},
+            {'Expt': 2, 'Run': 6, 'Speed': 400},
+            {'Expt': 2, 'Run': 7, 'Speed': 320},
+            {'Expt': 3, 'Run': 1, 'Speed': 510},
+            {'Expt': 3, 'Run': 2, 'Speed': 120},
+            {'Expt': 3, 'Run': 3, 'Speed': 320},
+            {'Expt': 3, 'Run': 4, 'Speed': 250},
+            {'Expt': 3, 'Run': 5, 'Speed': 600},
+            {'Expt': 3, 'Run': 6, 'Speed': 400},
+            {'Expt': 3, 'Run': 7, 'Speed': 800},
+        ];
+
+        ndx = crossfilter(experiments);
+        runDimension = ndx.dimension(function (d) {
+            return [+d.Expt, +d.Run];
+        });
+        overviewRunDimension = ndx.dimension(function (d) {
+            return [+d.Expt, +d.Run];
+        });
+        runGroup = runDimension.group().reduceSum(function (d) {
+            return +d.Speed;
+        });
+        overviewRunGroup = overviewRunDimension.group().reduceSum(function (d) {
+            return +d.Speed;
+        });
+
+        let maxRun = Math.max.apply(null, experiments.flatMap(function (x) {
+            return parseInt(x.Run)
+        }));
+
+        focusChart
+            .width(768)
+            .height(480)
+            .chart(function (c) {
+                return dc.lineChart(c).curve(d3.curveCardinal).evadeDomainFilter(true);
+            })
+            .x(d3.scaleLinear().domain([0, maxRun]))
+            .brushOn(false)
+            .yAxisLabel("Measured Speed km/s")
+            .yAxisPadding("5%")
+            .xAxisLabel("Run")
+            .elasticY(true)
+            .dimension(runDimension)
+            .group(runGroup)
+            .mouseZoomable(true)
+            .rangeChart(overviewChart)
+            .seriesAccessor(function (d) {
+                return "Expt: " + d.key[0];
+            })
+            .keyAccessor(function (d) {
+                return +d.key[1];
+            })
+            .valueAccessor(function (d) {
+                return +d.value;
+            })
+            .legend(dc.legend().x(120).y(0).itemHeight(20).gap(4).horizontal(1).legendWidth(140).itemWidth(70));
+        focusChart.yAxis().tickFormat(function (d) {
+            return d3.format(',d')(d);
+        });
+        focusChart.margins().left += 40;
+
+        overviewChart
+            .width(768)
+            .height(200)
+            .chart(function (c) {
+                return dc.lineChart(c).curve(d3.curveCardinal);
+            })
+            .elasticY(true)
+            .elasticX(true)
+            .x(d3.scaleLinear().domain([0, 8]))
+            .brushOn(true)
+            .xAxisLabel("Run")
+            .clipPadding(10)
+            .dimension(runDimension)
+            .group(runGroup)
+            .seriesAccessor(function (d) {
+                return "Expt: " + d.key[0];
+            })
+            .keyAccessor(function (d) {
+                return +d.key[1];
+            })
+            .valueAccessor(function (d) {
+                return +d.value;
+            })
+            .yAxis().ticks(10); // y轴数值个数
+
+        dc.renderAll();
+
+
+        function resetData(ndx, dimensions) {
+            let focusChartFilters = focusChart.filters();
+            let overviewChartFilters = overviewChart.filters();
+            focusChart.filter(null);
+            overviewChart.filter(null);
+            ndx.remove();
+            focusChart.filter([focusChartFilters]);
+            overviewChart.filter([overviewChartFilters]);
+        }
+
+        setInterval(function () {
+            resetData(ndx, [runDimension, overviewRunDimension]);
+            ndx.add(v.init_data);
+            dc.redrawAll();
+        }, 1000)
+
+    </script>
+    <script>
+        let v = new Vue({
+                el: '#container',
+                data: {
+                    init_data: [
+                        {'Expt': 1, 'Run': 2, 'Speed': 200},
+                        {'Expt': 1, 'Run': 3, 'Speed': 300},
+                        {'Expt': 1, 'Run': 4, 'Speed': 100},
+                        {'Expt': 1, 'Run': 5, 'Speed': 200},
+                        {'Expt': 1, 'Run': 6, 'Speed': 500},
+                        {'Expt': 1, 'Run': 7, 'Speed': 400},
+                        {'Expt': 2, 'Run': 1, 'Speed': 100},
+                        {'Expt': 2, 'Run': 2, 'Speed': 200},
+                        {'Expt': 2, 'Run': 3, 'Speed': 120},
+                        {'Expt': 2, 'Run': 4, 'Speed': 150},
+                        {'Expt': 2, 'Run': 5, 'Speed': 220},
+                        {'Expt': 2, 'Run': 6, 'Speed': 400},
+                        {'Expt': 2, 'Run': 7, 'Speed': 320},
+                        {'Expt': 3, 'Run': 1, 'Speed': 510},
+                        {'Expt': 3, 'Run': 2, 'Speed': 120},
+                        {'Expt': 3, 'Run': 3, 'Speed': 320},
+                        {'Expt': 3, 'Run': 4, 'Speed': 250},
+                        {'Expt': 3, 'Run': 5, 'Speed': 600},
+                        {'Expt': 3, 'Run': 6, 'Speed': 400},
+                        {'Expt': 3, 'Run': 7, 'Speed': 800},
+                    ],
+                    random_sale: null,
+                },
+                created: function () {
+                    // get data when connect rabbitmq stomp server
+                    let f = this;
+                    let ws = new SockJS('http://139.159.212.35:15674/stomp');
+                    let client = Stomp.over(ws);
+                    client.heartbeat.outgoing = 0;
+                    client.heartbeat.incoming = 0;
+
+                    let on_connect = function (x) {
+                        client.subscribe('/exchange/ce/ces', function (d) {
+                                let value = parseInt($.parseJSON(d.body).value);
+                                f.random_sale = value;
+                                let incrm = value;
+                                f.init_data.forEach(x => {
+                                    x.Speed = incrm * Math.random() * 0.01
+                                })
+
+                            }
+                        )
+                    };
+
+                    let on_error = function () {
+                        console.log('connect rabbitmq error!');
+                    };
+
+                    client.connect(USER, PASSWD, on_connect, on_error, '/');
+
+                },
+                watch: {
+                    random_sale: function (newvalue, oldvalue) {
+                        console.log('oldvalue: ', oldvalue);
+                    }
+                }
+            })
+        ;
+    </script>
+{% endblock %}
