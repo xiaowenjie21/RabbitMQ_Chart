@@ -10,4 +10,4 @@
 然后运行app.py
 
 效果:
-![img]https://github.com/xiaowenjie21/RabbitMQ_Chart/blob/master/static/img/char.gif
+![img](https://github.com/xiaowenjie21/RabbitMQ_Chart/blob/master/static/img/char.gif)
